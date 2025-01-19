@@ -1,0 +1,104 @@
+#include <iostream>
+#include <limits>
+#include "GameState.h"
+#include "Graph.h"
+#include "LinkedList.h"
+
+using namespace std;
+
+// Minimax with Alpha-Beta Pruning
+int minimax(GameState& state, int depth, bool maximizingPlayer, int alpha, int beta, int player) {
+    if (state.done || depth == 0) {
+        if (state.hasWon(player)) return 100 - depth;
+        if (state.hasWon(!player)) return depth - 100;
+        return 0;
+    }
+
+    if (maximizingPlayer) {
+        int maxEval = numeric_limits<int>::min();
+        for (int i = 0; i < state.size; ++i) {
+            for (int j = 0; j < state.size; ++j) {
+                if (state.grid[i][j] == -1) {
+                    GameState temp = state;
+                    temp.play(i, j);
+                    int eval = minimax(temp, depth - 1, false, alpha, beta, player);
+                    maxEval = max(maxEval, eval);
+                    alpha = max(alpha, eval);
+                    if (beta <= alpha) break;
+                }
+            }
+        }
+        return maxEval;
+    } else {
+        int minEval = numeric_limits<int>::max();
+        for (int i = 0; i < state.size; ++i) {
+            for (int j = 0; j < state.size; ++j) {
+                if (state.grid[i][j] == -1) {
+                    GameState temp = state;
+                    temp.play(i, j);
+                    int eval = minimax(temp, depth - 1, true, alpha, beta, player);
+                    minEval = min(minEval, eval);
+                    beta = min(beta, eval);
+                    if (beta <= alpha) break;
+                }
+            }
+        }
+        return minEval;
+    }
+}
+
+// Find the best move for AI
+Vec findBestMove(GameState& state, int player) {
+    int bestValue = numeric_limits<int>::min();
+    Vec bestMove(-1, -1);
+
+    for (int i = 0; i < state.size; ++i) {
+        for (int j = 0; j < state.size; ++j) {
+            if (state.grid[i][j] == -1) {
+                GameState temp = state;
+                temp.play(i, j);
+                int moveValue = minimax(temp, 5, false, numeric_limits<int>::min(), numeric_limits<int>::max(), player);
+                if (moveValue > bestValue) {
+                    bestValue = moveValue;
+                    bestMove.set(i, j);
+                }
+            }
+        }
+    }
+    return bestMove;
+}
+
+int main() {
+    int boardSize = 3;  // Change this to test larger boards
+    GameState game(boardSize);
+
+    cout << game << endl;
+
+    while (!game.done) {
+        if (game.currentTurn == 0) {
+            int x, y;
+            cout << "Enter your move (X player): ";
+            cin >> x >> y;
+            if (!game.play(x, y)) {
+                cout << "Invalid move. Try again.\n";
+                continue;
+            }
+        } else {
+            cout << "AI (O player) is making its move...\n";
+            Vec bestMove = findBestMove(game, 1);
+            game.play(bestMove.x, bestMove.y);
+            cout << "AI played at: " << bestMove << endl;
+        }
+        cout << game << endl;
+    }
+
+    if (game.hasWon(0)) {
+        cout << "Player X wins!\n";
+    } else if (game.hasWon(1)) {
+        cout << "AI (Player O) wins!\n";
+    } else {
+        cout << "It's a tie!\n";
+    }
+
+    return 0;
+}
